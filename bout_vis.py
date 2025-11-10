@@ -133,3 +133,31 @@ def visualize_bouts_in_vid(vid_df, vid_id: int, activity_threshold: int = 1000, 
     fig.supxlabel("Frame Index")
     fig.supylabel("Grooming States")
     fig.suptitle(f'Video {vid_id}')
+
+def manual_inspect(vid_df, vid_id: int, window: tuple):
+    ''''''
+    sle = sklearn.preprocessing.LabelEncoder()
+    le_vid_vec = sle.fit_transform(vid_df['Video_name'].copy())
+
+    vid = vid_df.loc[le_vid_vec == vid_id, :]
+
+    t_min = np.min(vid.loc[:, 'Start'])
+    t_max = np.max(vid.loc[:, 'End'])
+    y = np.zeros((t_max-t_min,))
+
+    for i in range(len(vid)):
+        cur_bout = vid.iloc[i, :]
+        strt = cur_bout['Start']
+        dur = cur_bout['Duration']
+        state = cur_bout['Ordered_State']
+        y[strt:strt+dur] = state
+
+    y_view = y[window[0]:window[1]]
+    x = np.linspace(window[0], window[1], y_view.shape[0])
+
+    plt.title(f'Vid # {vid_id}')
+    plt.xlabel(f'Frame Slice')
+    plt.ylabel(f'Grooming State')
+
+    plt.plot(x, y_view)
+    plt.show()
