@@ -126,6 +126,7 @@ def manual_inspect_ordstate(vid_df, vid_id: int, window: tuple):
 
     plt.plot(x, y_view)
     plt.show()
+    
 
 def manual_inspect_filtstate(vid_df, vid_id: int, window: tuple):
     ''''''
