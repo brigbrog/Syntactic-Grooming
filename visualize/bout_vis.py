@@ -158,3 +158,80 @@ def manual_inspect_filtstate(vid_df, vid_id: int, window: tuple):
 
     plt.plot(x, y_view)
     plt.show()
+
+def rost_caud_simplify(state):
+    if state <= 2 and state > 0:
+        return 1
+    elif state >= 3:
+        return 2
+    else:
+        return 0
+
+def rost_caud_filtstate_view(vid_df, vid_ids, plot_sz=None):
+    fig, axes = plt.subplots(len(vid_ids), 1, figsize=(25, 4*len(vid_ids)))
+    plt.rcParams.update({'font.size': 16})
+
+    sle = sklearn.preprocessing.LabelEncoder()
+    le_vid_vec = sle.fit_transform(vid_df['Video_name'].copy())
+
+    for idx, vid_id in enumerate(vid_ids):
+
+        cur_vid = vid_df.loc[le_vid_vec == vid_id, :]
+        t_min = np.min(cur_vid.loc[:, 'Start'])
+        t_max = np.max(cur_vid.loc[:, 'End'])
+
+        x = np.linspace(0, t_max-t_min, t_max-t_min)
+        y = np.zeros((t_max-t_min,))
+        for i in range(len(cur_vid)):
+            cur_bout = cur_vid.iloc[i, :]
+            strt = cur_bout['Start']
+            dur = cur_bout['Duration']
+            if cur_bout['Filtered_State'] == 'X':
+                state = 0
+            else:
+                state = cur_bout['Filtered_State']
+            
+            
+            new = rost_caud_simplify(int(state))
+
+            y[strt:strt+dur] = new
+
+        axes[idx].plot(x, y)
+        axes[idx].set_title(f'Video # {vid_id}')
+        axes[idx].set_yticks(np.arange(0, 3))
+
+        fig.supxlabel("Frame Index")
+        fig.supylabel("Grooming States")
+
+def manual_inspect_rost_caud_filtstate(vid_df, vid_id: int, window: tuple):
+    ''''''
+    sle = sklearn.preprocessing.LabelEncoder()
+    le_vid_vec = sle.fit_transform(vid_df['Video_name'].copy())
+
+    vid = vid_df.loc[le_vid_vec == vid_id, :]
+
+    t_min = np.min(vid.loc[:, 'Start'])
+    t_max = np.max(vid.loc[:, 'End'])
+    y = np.zeros((t_max-t_min,))
+
+    for i in range(len(vid)):
+        cur_bout = vid.iloc[i, :]
+        strt = cur_bout['Start']
+        dur = cur_bout['Duration']
+        if cur_bout['Filtered_State'] == 'X':
+                state = 0
+        else:
+            state = cur_bout['Filtered_State']
+        new = rost_caud_simplify(int(state))
+
+        y[strt:strt+dur] = new
+
+    y_view = y[window[0]:window[1]]
+    x = np.linspace(window[0], window[1], y_view.shape[0])
+
+    plt.title(f'Vid # {vid_id}')
+    plt.xlabel(f'Frame Slice')
+    plt.ylabel(f'Grooming State')
+
+    plt.plot(x, y_view)
+    plt.show()
