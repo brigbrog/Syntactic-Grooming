@@ -50,7 +50,6 @@ class BoutMachine():
 
         cur_start = 0
 
-        
         for idx, ref in enumerate(self.cur_video):
             if self.use_filt_state and self.phase == 0:
                 # read the current grooming state in the video

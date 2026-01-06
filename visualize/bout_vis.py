@@ -23,7 +23,7 @@ def vid_compare(df: pd.DataFrame, vid_ids: list, plot_size: tuple = None):
         x = np.linspace(0, le_syn_vec[le_vid_vec == vid_id].shape[0], le_syn_vec[le_vid_vec == vid_id].shape[0])
         axes[idx].plot(x, le_syn_vec[le_vid_vec == vid_id])
 
-        axes[idx].set_title(f'Video # {vid_id + 1}')
+        axes[idx].set_title(f'Video # {vid_id}')
         axes[idx].set_yticks(np.arange(0, 7))
 
         fig.supxlabel("Frame Index")
@@ -128,7 +128,7 @@ def manual_inspect_ordstate(vid_df, vid_id: int, window: tuple):
     plt.show()
     
 
-def manual_inspect_filtstate(vid_df, vid_id: int, window: tuple):
+def manual_inspect_filtstate(vid_df, vid_id: int, window: tuple, fig_sz=None):
     ''''''
     sle = sklearn.preprocessing.LabelEncoder()
     le_vid_vec = sle.fit_transform(vid_df['Video_name'].copy())
@@ -151,6 +151,11 @@ def manual_inspect_filtstate(vid_df, vid_id: int, window: tuple):
 
     y_view = y[window[0]:window[1]]
     x = np.linspace(window[0], window[1], y_view.shape[0])
+
+    if fig_sz == None:
+        fig_sz = (5, 5)
+
+    plt.figure(figsize=fig_sz) 
 
     plt.title(f'Vid # {vid_id}')
     plt.xlabel(f'Frame Slice')
@@ -203,7 +208,7 @@ def rost_caud_filtstate_view(vid_df, vid_ids, plot_sz=None):
         fig.supxlabel("Frame Index")
         fig.supylabel("Grooming States")
 
-def manual_inspect_rost_caud_filtstate(vid_df, vid_id: int, window: tuple):
+def manual_inspect_rost_caud_filtstate(vid_df, vid_id: int, window: tuple, fig_sz=None):
     ''''''
     sle = sklearn.preprocessing.LabelEncoder()
     le_vid_vec = sle.fit_transform(vid_df['Video_name'].copy())
@@ -229,9 +234,18 @@ def manual_inspect_rost_caud_filtstate(vid_df, vid_id: int, window: tuple):
     y_view = y[window[0]:window[1]]
     x = np.linspace(window[0], window[1], y_view.shape[0])
 
-    plt.title(f'Vid # {vid_id}')
+    if fig_sz == None:
+        fig_sz = (5, 5)
+
+    plt.figure(figsize=fig_sz) 
+
+    plt.title(f'Vid # {vid_id} (ceph/caud)')
     plt.xlabel(f'Frame Slice')
+    plt.yticks([0, 1, 2])
     plt.ylabel(f'Grooming State')
 
     plt.plot(x, y_view)
     plt.show()
+
+def inspect_bout():
+    pass 
