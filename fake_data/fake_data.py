@@ -22,14 +22,14 @@ if __name__ == '__main__':
     # specify variables
     #length = input('length (int): ')
     target_seq = input('target sequence (string): ')
-    n_seqs = input('number of target sequences (int): ')
-    state_dur = input('state_duration (int): ')
-    buffer_length = input('buffer length (int): ') 
+    n_seqs = int(input('number of target sequences (int): '))
+    state_dur = int(input('state duration (int): '))
+    buffer_length = int(input('buffer length (int): ')) 
     save_name = input('save name (string): ')
 
     # create output directory
-    os.makedirs('./output')
-    save_path = os.join('./output', save_name)
+    os.makedirs('./output', exist_ok=True)
+    save_path = os.path.join('./output', save_name)
 
     # syntaxes
     syntaxes = ['Not_Grooming','Paw_Lick','Bilateral_Face_Wash','Genital_Groom','Flank_Lick','Unilateral_Face_Wash','Tail_Groom']
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     start = 0
 
     fake_data_ls = []
-    vid_len = len((target_seq * state_dur + buffer_length) * n_seqs)
+    #vid_len = len((target_seq * state_dur + buffer_length) * n_seqs)
 
     for i in range(n_seqs):
         buffer = {'Start' : start,
@@ -84,5 +84,5 @@ if __name__ == '__main__':
     # Export CSV
     fake_data = pd.DataFrame(fake_data_ls)
 
-    fake_data.to_csv(save_path, index=False)
+    fake_data.to_csv(save_path + '.csv', index=False)
     
