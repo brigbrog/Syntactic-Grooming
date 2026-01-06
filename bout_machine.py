@@ -51,16 +51,23 @@ class BoutMachine():
         cur_start = 0
 
         for idx, ref in enumerate(self.cur_video):
-            if self.use_filt_state and self.phase == 0:
+            if self.phase == 0:
                 # read the current grooming state in the video
-                state_read = ref['Filtered_State']
+                if self.use_filt_state:
+                    state_read = ref['Filtered_State']
+                else: 
+                    state_read = ref['Ordered_State']
                 
-                # check if the current state is equal to the corresponding state in the target chain
-                if state_read == self.target_chain[self.chain_acc]:
+            # check if the current state is equal to the corresponding state in the target chain
+            if state_read == self.target_chain[self.chain_acc]:
 
-                    # check if the chain_acc was previously 0, if yes record start
-                    if self.chain_acc == 0:
-                        cur_start = ref['Start']
+                # check if the chain_acc was previously 0, if yes record start
+                if self.chain_acc == 0:
+                    cur_start = ref['Start']
+                    
+                self.chain_acc += 1
+
+
 
 
 
