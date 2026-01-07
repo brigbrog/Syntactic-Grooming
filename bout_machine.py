@@ -21,6 +21,7 @@ class BoutMachine():
         
         # set controls
         self.phase = 0
+        self.chain_acc = 0
         self.target_chain = target_chain
         self.use_filt_state = use_filt_state
         self.use_bout_assignment = use_bout_assignment
@@ -43,21 +44,59 @@ class BoutMachine():
     def get_target_length(self):
         self.target_length = self.cur_video.shape[0]
 
+
+
+
+
+
+    def read_state(self, reference):
+        state_read = None
+        if self.use_filt_state:
+            state_read = reference['Filtered_State']
+        else:
+            state_read = reference['Ordered_State'] 
+
+        return state_read
+    
+
+    def verify(self, state_read, target_chain, index):
+
+        if state_read == target_chain[index]:
+            return True
+        
+        return False
+
+
+
     def run_machine(self):
         #self.get_chain_acc()
-        self.chain_acc = 0
-        self.get_target_length()
+        #self.chain_acc = 0
+        # self.get_target_length() RUN INIT
 
         cur_start = 0
+        cur_end = 0
 
         for idx, ref in enumerate(self.cur_video):
-            if self.phase == 0:
-                # read the current grooming state in the video
-                if self.use_filt_state:
-                    state_read = ref['Filtered_State']
-                else: 
-                    state_read = ref['Ordered_State']
+            
+            # read the current state in the video
+            state_read = self.read_state(ref)
+
+            # verify if the read state agrees with current index of target chain (BOOL)
+            if self.verify(state_read, self.target_chain, self.chain_acc):
+                self.chain_acc += 1
+                #cur_start = ref['Start']
+                cur_start = idx
+            else:
+                self.chain_acc = 0
+
+            # add bout to return field if chain accumulator reaches max
+
+            if self.chain_acc == len(self.target_chain):
+                pass
                 
+
+
+
             # check if the current state is equal to the corresponding state in the target chain
             if state_read == self.target_chain[self.chain_acc]:
 
