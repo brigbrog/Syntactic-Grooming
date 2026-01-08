@@ -128,6 +128,32 @@ class BoutMachine():
 
         return interval_log, bout_log
     
+    def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str):
+        '''
+        Docstring for pull_match_data
+        returns formatted dictionary for multi video searching
+        columns: match #, target, interval, bout #, sex, strain, duration
+        '''
+        toReturn = []
+        slice = data[data['Video_name']==video]
+
+        for i, key in enumerate(match_log.keys()):
+
+            interval = match_log[key]
+
+            pull = {
+                'target':target,
+                'match_num':i,
+                'interval':interval,
+                'bout_num':slice[slice['Start'] == interval[0]]['Bout'].iloc[0],
+                'sex':slice[slice['Start'] == interval[0]]['Sex'].iloc[0],
+                'strain':slice[slice['Start'] == interval[0]]['Strain'].iloc[0],
+                'duration': slice.loc[(slice['Start'] >= interval[0]) & (slice['End'] <= interval[1]), 'Duration'].to_numpy()
+            }
+
+            toReturn.append(pull)
+
+        return pd.DataFrame(toReturn)
 
 
     def multi_Vid_matchlog(self, vid_ind):
