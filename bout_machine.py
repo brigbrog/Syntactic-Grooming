@@ -3,7 +3,7 @@ Brian Brogan
 Colby College - The Jackson Laboratory
 
 3 December 2025
-Grooming Bout Identifier (State Machine)
+Grooming Bout Identifier
 ------------------------
 '''
 
@@ -42,12 +42,8 @@ class BoutMachine():
         self.target_length = self.cur_video.shape[0]
 
 
-
-
-
-
     def read_state(self, reference):
-        state_read = None
+
         if self.use_filt_state:
             state_read = int(reference['Filtered_State'])
         else:
@@ -55,55 +51,120 @@ class BoutMachine():
 
         return state_read
     
+    
+    def read_bout(self, reference):
 
-    def verify(self, state_read: int, target_chain, index):
+        bout = int(reference['Bout'])
+        if bout != 0:
+            return bout
+        
+        return None
+    
 
-        target = int(target_chain[index])
+    def verify_state(self, state_read, target_chain, index):
 
-        if state_read == target:
+        if int(state_read) == int(target_chain[index]):
             return True
         
         return False
     
+    
+    def verify_bout(self, previous, current):
+        if previous is None or current is None:
+            return False
 
-    def run_machine(self, video: pd.DataFrame, verbose: bool = True):
+        prev, curr = int(previous), int(current)
+        return prev == curr and curr != 0
 
-        cur_start = np.nan
-        cur_end = np.nan
+    
+    def single_vid_matchlog(self,
+                            video: pd.DataFrame,
+                            #use_bout: bool,
+                            verbose: bool = True,
+                            ):
+        '''
+        Docstring for single_vid_matchlog
+        
+        :param self: Description
+        :param video: Description
+        :type video: pd.DataFrame
+        :param verbose: Description
+        :type verbose: bool
+        '''
+
         identified = 0
-        log = {}
+        interval_log = {}
+        bout_log = {}
 
         for ref in video.iterrows():
             
             # read the current state in the video
             state_read = self.read_state(ref[1])
 
+            # read the current bout in the video 
+            bout_read = self.read_bout(ref[1])
+
             if verbose:
-                print(f'state read: {state_read} chain acc: {self.chain_acc} target val: {self.target_chain[self.chain_acc]} verify: {self.verify(state_read, self.target_chain, self.chain_acc)}')
+                print(f'state read: {state_read} chain acc: {self.chain_acc} target val: {self.target_chain[self.chain_acc]} s_verify: {self.verify_state(state_read, self.target_chain, self.chain_acc)}')
 
-            # verify if the read state agrees with current index of target chain (BOOL)
-            if self.verify(state_read, self.target_chain, self.chain_acc):
-                if self.chain_acc == 0:
+            # verify if the read state agrees with current index of target chain
+            if self.verify_state(state_read, self.target_chain, self.chain_acc):
+                if self.chain_acc == 0: 
                     cur_start = ref[1]['Start']
-                self.chain_acc += 1
+                    bout_start = ref[1]['Bout']
 
-            # if not reset chain accumulator and start counter    
+                self.chain_acc += 1
+                
+                if verbose:
+                    print(f'bout read: {bout_read}, target val: {bout_start}, b_verify: {self.verify_bout(bout_start, bout_read)}')
+
+                # if the bout is different, the match has failed. Break the chain
+                if not self.verify_bout(bout_start, bout_read):
+                    if verbose and self.chain_acc > 0:
+                        print(f'MATCH FAILED (BOUT): {cur_start}')
+                    self.chain_acc = 0
+                
+            # otherwise reset chain accumulator and start counter    
             else:
+                if verbose and self.chain_acc > 0:
+                    print(f'MATCH FAILED (STATE): {cur_start}')
                 self.chain_acc = 0
                 cur_start = np.nan
+                bout_start = 0
 
             # add bout to return field if chain accumulator reaches max
             if self.chain_acc == len(self.target_chain):
+                
                 identified += 1
                 cur_end = ref[1]['End']
-                log[identified] = (cur_start, cur_end)
+                bout_end = ref[1]['Bout']
 
-                # then reset chain accumulator and counters
+                if verbose:
+                    print(f'MATCH: {(cur_start, cur_end)}')
+
+                interval_log[f'match_{identified}'] = (cur_start, cur_end)
+                bout_log[f'match_{identified}'] = (bout_start, bout_end)
+
+                # reset chain accumulator
                 self.chain_acc = 0
-                cur_start = np.nan
-                cur_end = np.nan
+                #cur_start = np.nan
+                #cur_end = np.nan
 
-        return log
+        return interval_log, bout_log
+    
+
+
+    def multi_Vid_matchlog(self, vid_ind):
+        '''
+        Docstring for run_multiVid
+        
+        :param self: Description
+        :param vid_ind: Description
+
+        eventualy need support for strain, sex, others?
+        '''
+        pass
+
                 
 
 

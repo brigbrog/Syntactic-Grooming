@@ -51,7 +51,7 @@ if __name__ == '__main__':
                 'End': start + buffer_length,
                 'Syntax': syntaxes[0],
                 'Ordered_State': 0,
-                'Bout': 'N/A',
+                'Bout': 0,
                 'Filtered_State': 0}
          
         # add buffer to data list
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                     'End': start + state_dur,
                     'Syntax': syntaxes[int(j)],
                     'Ordered_State': j,
-                    'Bout': 'N/A',
+                    'Bout': i+1,
                     'Filtered_State': j}
 
             # add grooming to data list
