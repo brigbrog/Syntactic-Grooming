@@ -67,7 +67,7 @@ class BoutMachine():
     
     def single_vid_matchlog(self,
                             video: pd.DataFrame,
-                            verbose: bool = True,
+                            verbose: bool = False,
                             ):
 
         identified = 0
@@ -128,7 +128,7 @@ class BoutMachine():
 
         return interval_log, bout_log
     
-    def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str):
+    def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, video_sindx: int = None):
         '''
         Docstring for pull_match_data
         returns formatted dictionary for multi video searching
@@ -142,40 +142,45 @@ class BoutMachine():
             interval = match_log[key]
 
             pull = {
-                'target':target,
-                'match_num':i,
-                'interval':interval,
-                'bout_num':slice[slice['Start'] == interval[0]]['Bout'].iloc[0],
-                'sex':slice[slice['Start'] == interval[0]]['Sex'].iloc[0],
-                'strain':slice[slice['Start'] == interval[0]]['Strain'].iloc[0],
-                'duration': slice.loc[(slice['Start'] >= interval[0]) & (slice['End'] <= interval[1]), 'Duration'].to_numpy()
+                'target' : target,
+                'match_num' : i+1,
+                'interval' : interval,
+                'bout_num' : slice[slice['Start'] == interval[0]]['Bout'].iloc[0],
+                'sex' : slice[slice['Start'] == interval[0]]['Sex'].iloc[0],
+                'strain' : slice[slice['Start'] == interval[0]]['Strain'].iloc[0],
+                'duration' : slice.loc[(slice['Start'] >= interval[0]) & (slice['End'] <= interval[1]), 'Duration'].to_numpy(),
+                'video_search_index' : video_sindx,
+                'Video_name' : video
             }
 
             toReturn.append(pull)
 
         return pd.DataFrame(toReturn)
-
-
-    def multi_Vid_matchlog(self, vid_ind):
-        '''
-        Docstring for run_multiVid
         
-        :param self: Description
-        :param vid_ind: Description
 
-        eventualy need support for strain, sex, others?
-        '''
-        pass
 
+    def multi_vid_matchlog(self, data: pd.DataFrame, vid_ind: list = None):
+        
+        mv_match_log = None
+        
+        names = np.unique(data['Video_name'])
+        if vid_ind != None and len(vid_ind) > 0:
+            names = names[vid_ind]
+
+        for idx, name in enumerate(names):
+            data_slice = data[data['Video_name'] == name]
+            match_log = self.single_vid_matchlog(data_slice, False)
+            print(f'Video # : {idx}')
+            print(f'Matches found: {len(match_log[0])}: {match_log[0]}')
+            print()
+            toAdd = self.pull_match_data(data_slice, name, match_log[0], self.target_chain, idx)
+
+            if idx == 0:
+                mv_match_log = toAdd
+            else:
+                mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
+
+        
+        return mv_match_log
                 
 
-
-
-
-
-
-
-            
-
-
-    
