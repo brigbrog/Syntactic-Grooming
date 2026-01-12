@@ -21,11 +21,25 @@ output:
 ---------------------------------------------------
 text file generation of all permutations specified under input params
 
+NEED SUPPORT -> interruptions, incompletions
+
 '''
 
+def parse_lengths(length_in: str, split: str):
 
+    strip_list = length_in.split(split)
+    int_lengths = []
+
+    for string in strip_list:
+        intLen = int(string.strip())
+        int_lengths.append(intLen)
+
+    return int_lengths
+
+
+## Permutations
 def single_length_perm(states, length):
-
+    # NEED non-adjacent combinations
     perms = permutations(states, r=length)
     return list(perms)
 
@@ -40,26 +54,85 @@ def varying_length_permutations(states, lengths: list = None):
 
     return all_perms
 
-def parse_lengths(length_in: str, split: str):
-
-    strip_list = length_in.split(split)
-    int_lengths = []
-
-    for string in strip_list:
-        intLen = int(string.strip())
-        int_lengths.append(intLen)
-
-    return int_lengths
-
 def write_perms(save_name, perm_list):
 
-    os.makedirs('./target_generator_output', exist_ok = True)
-    save_path = os.path.join('./target_generator_output', save_name + '.txt')
+    os.makedirs('../library/target_permutations', exist_ok = True)
+    save_path = os.path.join('../library/target_permutations', save_name + '.txt')
 
     with open(save_path, 'w') as file:
         for perm in perm_list:
             file.writelines(perm)
             file.write('\n')
+    print(f'Save to {save_path} complete.')
+
+
+    ## Interruptions
+class Interruptions():
+    def __init__(self, states):
+        self.states = states
+
+    def generate_inter(self, lengths):
+        pass
+
+    def verify_non_adj(self, prev_char, cur_char):
+        pass
+
+    def write(self, save_name):
+        pass
+
+
+    ## Incompletions
+class Incompletions():
+    def __init__(self, states):
+        self.states = states
+
+    def generate_incom(self, lengths):
+        pass
+
+    def verify_non_dec(self, prev_char, cur_char):
+        pass
+
+    def write(self, save_name):
+        pass
+
+
+
+class Permutations():
+    def __init__(self, states: str, robust: bool, save_dir: str, save_name: str):
+        self.states = states
+        self.robust = robust
+        self.save_dir = save_dir
+        self.save_name = save_name
+        self.perm_list = None
+
+    def generate_perm(self, length):
+        perms = permutations(self.states, r=length)
+        return list(perms)
+    
+    def compile(self, lengths: list = None):
+        self.perm_list = [] 
+        lengths = range(1, len(self.states)) if lengths == None else lengths
+
+        for length in lengths:
+            i_perms = self.generate_perm(length)
+            self.perm_list.extend(i_perms)
+
+        return self.perm_list
+    
+    def write_perms(self):
+        # Write file type options?
+        libpath = os.path.join('../library', self.save_dir)
+        os.makedirs(libpath, exist_ok = True)
+        save_path = os.path.join(libpath, save_name + '.txt') 
+        if self.perm_list is None or len(self.perm_list) == 0:
+            raise ValueError('Permutations are None or empty')
+        with open(save_path, 'w') as file:
+            for perm in self.perm_list:
+                file.writelines(perm)
+                file.write('\n')
+        print(f'Save to {save_path} complete.')
+
+
 
 
 if __name__ == "__main__":
