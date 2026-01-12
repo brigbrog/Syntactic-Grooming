@@ -159,7 +159,7 @@ class BoutMachine():
         
 
 
-    def multi_vid_matchlog(self, data: pd.DataFrame, vid_ind: list = None):
+    def multi_vid_matchlog(self, data: pd.DataFrame, vid_ind: list = None, verbose: bool = False):
         
         mv_match_log = None
         
@@ -169,10 +169,12 @@ class BoutMachine():
 
         for idx, name in enumerate(names):
             data_slice = data[data['Video_name'] == name]
-            match_log = self.single_vid_matchlog(data_slice, False)
-            print(f'Video # : {idx}')
-            print(f'Matches found: {len(match_log[0])}: {match_log[0]}')
-            print()
+            match_log = self.single_vid_matchlog(data_slice)
+
+            if verbose:
+                print(f'Video # : {idx}')
+                print(f'Matches found: {len(match_log[0])}: {match_log[0]}')
+                
             toAdd = self.pull_match_data(data_slice, name, match_log[0], self.target_chain, idx)
 
             if idx == 0:
