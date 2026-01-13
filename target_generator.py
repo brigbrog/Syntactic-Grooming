@@ -66,8 +66,15 @@ def write_perms(save_name, perm_list):
     print(f'Save to {save_path} complete.')
 
 
+## ## ## ## ## ##
+
+class Generator():
+    def __init__(self):
+        pass
+
+
     ## Interruptions
-class Interruptions():
+class Interruptions(Generator):
     def __init__(self, states):
         self.states = states
 
@@ -82,7 +89,7 @@ class Interruptions():
 
 
     ## Incompletions
-class Incompletions():
+class Incompletions(Generator):
     def __init__(self, states):
         self.states = states
 
@@ -94,10 +101,8 @@ class Incompletions():
 
     def write(self, save_name):
         pass
-
-
-
-class Permutations():
+    
+class Permutations(Generator):
     def __init__(self, states: str, robust: bool, save_dir: str, save_name: str):
         self.states = states
         self.robust = robust
