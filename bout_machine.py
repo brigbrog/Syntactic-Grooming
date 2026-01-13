@@ -9,6 +9,7 @@ Grooming Bout Identifier
 
 import numpy as np
 import pandas as pd
+import os
 
 class BoutMachine():
 
@@ -31,6 +32,8 @@ class BoutMachine():
 
 
     def read_state(self, reference):
+
+        # NEED FILTERED STATE SUPPORT
 
         if self.use_filt_state:
             state_read = int(reference['Filtered_State'])
@@ -73,6 +76,7 @@ class BoutMachine():
         identified = 0
         interval_log = {}
         bout_log = {}
+        bout_start = 0
 
         for ref in video.iterrows():
             
@@ -89,7 +93,7 @@ class BoutMachine():
             if self.verify_state(state_read, self.target_chain, self.chain_acc):
                 if self.chain_acc == 0: 
                     cur_start = ref[1]['Start']
-                    bout_start = ref[1]['Bout']
+                    bout_start = ref[1]['Bout'] 
 
                 self.chain_acc += 1
                 
@@ -128,12 +132,13 @@ class BoutMachine():
 
         return interval_log, bout_log
     
-    def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, video_sindx: int = None):
+    def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, vid_sidx: int = None):
         '''
         Docstring for pull_match_data
         returns formatted dictionary for multi video searching
         columns: match #, target, interval, bout #, sex, strain, duration
         '''
+
         toReturn = []
         slice = data[data['Video_name']==video]
 
@@ -149,8 +154,8 @@ class BoutMachine():
                 'sex' : slice[slice['Start'] == interval[0]]['Sex'].iloc[0],
                 'strain' : slice[slice['Start'] == interval[0]]['Strain'].iloc[0],
                 'duration' : slice.loc[(slice['Start'] >= interval[0]) & (slice['End'] <= interval[1]), 'Duration'].to_numpy(),
-                'video_search_index' : video_sindx,
-                'Video_name' : video
+                'video_search_index' : vid_sidx,
+                'video_name' : video
             }
 
             toReturn.append(pull)
@@ -168,6 +173,7 @@ class BoutMachine():
             names = names[vid_ind]
 
         for idx, name in enumerate(names):
+            #print(f'searching video {idx}')
             data_slice = data[data['Video_name'] == name]
             match_log = self.single_vid_matchlog(data_slice)
 
@@ -184,5 +190,46 @@ class BoutMachine():
 
         
         return mv_match_log
+    
+    def get_save_path(self, data_fname, target_lib_fname, vid_limit):
+        data_name = data_fname.split('/')[-1].split('.')[0]
+        target_name = target_lib_fname.split('/')[-1].split('.')[0]
+        filename = f'lim{vid_limit}_{target_name}_@_{data_name}'
+
+        os.makedirs('../library/search_logs', exist_ok=True)
+        save_path = os.path.join('../library/search_logs', filename + '.csv')
+
+        return save_path
                 
 
+if __name__ == "__main__":
+    data_fname = input("data fname: ")
+    target_lib_fname = input("target chain library fname: ")
+    save_run = input("save run? (y/n): ")
+    vid_limit = input("video limit (int or 'all'): ")
+    verbose = input('verbose? (y/n): ')
+    
+
+    data = pd.read_csv(data_fname)
+    toReturn = None
+
+    vid_ind = None if vid_limit.lower() == 'all' else list(range(0, int(vid_limit)))
+    
+    #print(f'searching {data.shape[0]} states...')
+    
+    with open(target_lib_fname, 'r') as library:
+        lines = (line.strip() for line in library)
+
+        for idx, target in enumerate(lines):
+            
+            boutMachine = BoutMachine(target, False)
+            match_log = boutMachine.multi_vid_matchlog(data, vid_ind=vid_ind)
+            if verbose.lower() == 'y': 
+                print(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
+            if idx == 0:
+                toReturn = match_log
+            else:
+                toReturn = pd.concat([toReturn, match_log], ignore_index=True)
+
+    if save_run.lower() == 'y':
+        toReturn.to_csv(boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit), index=False)
