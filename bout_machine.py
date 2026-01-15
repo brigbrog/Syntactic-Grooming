@@ -93,7 +93,8 @@ class BoutMachine():
             if self.verify_state(state_read, self.target_chain, self.chain_acc):
                 if self.chain_acc == 0: 
                     cur_start = ref[1]['Start']
-                    bout_start = ref[1]['Bout'] 
+                    bout_start = ref[1]['Bout']
+                    #bout_start_ts = ref[1] 
 
                 self.chain_acc += 1
                 
@@ -130,7 +131,7 @@ class BoutMachine():
                 # reset chain accumulator
                 self.chain_acc = 0
 
-        return interval_log, bout_log
+        return interval_log
     
     def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, vid_sidx: int = None):
         '''
@@ -144,16 +145,21 @@ class BoutMachine():
 
         for i, key in enumerate(match_log.keys()):
 
-            interval = match_log[key]
+            match_interval = np.array(match_log[key], dtype=np.int64)
+            bout_interval = np.array([slice.loc[slice['Bout'] == slice.loc[slice['Start'] == match_interval[0], 'Bout'].iloc[0], 'Start'].iloc[0],
+                                      slice.loc[slice['Bout'] == slice.loc[slice['Start'] == match_interval[0], 'Bout'].iloc[0], 'End'].iloc[-1]], dtype=np.int64)
 
             pull = {
                 'target' : target,
                 'match_num' : i+1,
-                'interval' : interval,
-                'bout_num' : slice[slice['Start'] == interval[0]]['Bout'].iloc[0],
-                'sex' : slice[slice['Start'] == interval[0]]['Sex'].iloc[0],
-                'strain' : slice[slice['Start'] == interval[0]]['Strain'].iloc[0],
-                'duration' : slice.loc[(slice['Start'] >= interval[0]) & (slice['End'] <= interval[1]), 'Duration'].to_numpy(),
+                'match_interval' : match_interval,
+                'bout_num' : slice[slice['Start'] == match_interval[0]]['Bout'].iloc[0],
+                'bout_interval' : bout_interval,
+                'match_pos' : match_interval[0] / slice['End'].iloc[-1], # match start position in video as a percentage of total video length
+                'bout_pos' : bout_interval[0] / slice['End'].iloc[-1], # bout start position in video as a percentage of total video length
+                'duration' : slice.loc[(slice['Start'] >= match_interval[0]) & (slice['End'] <= match_interval[1]), 'Duration'].to_numpy(),
+                'sex' : slice[slice['Start'] == match_interval[0]]['Sex'].iloc[0],
+                'strain' : slice[slice['Start'] == match_interval[0]]['Strain'].iloc[0],
                 'video_search_index' : vid_sidx,
                 'video_name' : video
             }
@@ -173,15 +179,14 @@ class BoutMachine():
             names = names[vid_ind]
 
         for idx, name in enumerate(names):
-            #print(f'searching video {idx}')
             data_slice = data[data['Video_name'] == name]
             match_log = self.single_vid_matchlog(data_slice)
 
             if verbose:
                 print(f'Video # : {idx}')
-                print(f'Matches found: {len(match_log[0])}: {match_log[0]}')
+                print(f'Matches found: {len(match_log)}: {match_log}')
                 
-            toAdd = self.pull_match_data(data_slice, name, match_log[0], self.target_chain, idx)
+            toAdd = self.pull_match_data(data_slice, name, match_log, self.target_chain, idx)
 
             if idx == 0:
                 mv_match_log = toAdd
@@ -215,8 +220,6 @@ if __name__ == "__main__":
 
     vid_ind = None if vid_limit.lower() == 'all' else list(range(0, int(vid_limit)))
     
-    #print(f'searching {data.shape[0]} states...')
-    
     with open(target_lib_fname, 'r') as library:
         lines = (line.strip() for line in library)
 
@@ -232,4 +235,4 @@ if __name__ == "__main__":
                 toReturn = pd.concat([toReturn, match_log], ignore_index=True)
 
     if save_run.lower() == 'y':
-        toReturn.to_csv(boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit), index=False)
+        toReturn.to_csv(boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit), index=False, float_format='%.4f')
