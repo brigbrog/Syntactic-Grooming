@@ -78,7 +78,7 @@ class BoutMachine():
         Verifies if the current bout read equals the previous bout read. 
         Returns True if bout reads are nonzero and equal, otherwise False.
         '''
-        # revisit for start or end check?
+        # revisit for bout start or end check?
         if previous is None or current is None:
             return False
 
@@ -99,7 +99,6 @@ class BoutMachine():
         '''
         identified = 0
         interval_log = {}
-        #bout_log = {}
         bout_start = 0
         last_state = None
 
@@ -145,13 +144,11 @@ class BoutMachine():
             if self.chain_acc == len(self.target_chain):
                 identified += 1
                 cur_end = ref['End']
-                #bout_end = ref['Bout']
 
                 if verbose:
                     print(f'MATCH: {(cur_start, cur_end)}')
 
                 interval_log[f'match_{identified}'] = (cur_start, cur_end)
-                #bout_log[f'match_{identified}'] = (bout_start, bout_end)
 
                 # reset chain accumulator
                 self.chain_acc = 0
@@ -159,6 +156,7 @@ class BoutMachine():
             last_state = state_read
 
         return interval_log
+    
     
     def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, vid_sidx: int = None):
         '''
@@ -195,7 +193,6 @@ class BoutMachine():
         return pd.DataFrame(toReturn)
         
 
-
     def multi_vid_matchlog(self, data: pd.DataFrame, vid_ind: list = None, verbose: bool = False):
         '''
         Runs bout search algorithm for all specified videos.
@@ -218,15 +215,11 @@ class BoutMachine():
                 
             toAdd = self.pull_match_data(data_slice, name, match_log, self.target_chain, idx)
 
-            #if idx == 0:
-            #    mv_match_log = toAdd
-            #else:
-            #    mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
-
             mv_match_log = toAdd if idx == 0 else mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
         
         return mv_match_log
     
+
     def get_save_path(self, data_fname, target_lib_fname, vid_limit):
         '''
         Generates save name for output data.
@@ -265,11 +258,6 @@ if __name__ == "__main__":
             match_log = boutMachine.multi_vid_matchlog(data, vid_ind=vid_ind)
             if verbose.lower() == 'y': 
                 print(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
-                
-            #if idx == 0:
-            #    toReturn = match_log
-            #else:
-            #    toReturn = pd.concat([toReturn, match_log], ignore_index=True)
 
             toReturn = match_log if idx == 0 else pd.concat([toReturn, match_log], ignore_index=True)
 
