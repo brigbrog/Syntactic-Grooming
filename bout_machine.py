@@ -19,7 +19,6 @@ class BoutMachine():
                  use_bout_assignment: bool = False
                  ):
         
-        # set controls
         self.phase = 0
         self.chain_acc = 0
         self.target_chain = target_chain
@@ -28,15 +27,23 @@ class BoutMachine():
 
 
     def set_target_chain(self, target_chain: str):
+        '''
+        Sets the target chain instance variable
+        '''
         self.target_chain = target_chain
 
 
     def read_state(self, reference):
-
-        # NEED FILTERED STATE SUPPORT
-
+        '''
+        Reads the state from reference sample using use_filt_state instance variable (bool.
+        Returns none if self.use_filt_state & state read is 'X', otherwise int casted state.
+        '''
         if self.use_filt_state:
-            state_read = int(reference['Filtered_State'])
+            state_read = reference['Filtered_State']
+            if state_read == 'X':
+                return None
+            else:
+                state_read = int(state_read)
         else:
             state_read = int(reference['Ordered_State'])
 
@@ -44,7 +51,10 @@ class BoutMachine():
     
     
     def read_bout(self, reference):
-
+        '''
+        Reads the bout from reference sample.
+        Returns bout if bout read is nonzero, otherwise None.
+        '''
         bout = int(reference['Bout'])
         if bout != 0:
             return bout
@@ -53,7 +63,10 @@ class BoutMachine():
     
 
     def verify_state(self, state_read, target_chain, index):
-
+        '''
+        Verifies if the current state read equals the current index of the target chain.
+        Returns true if equal, otherwise False.
+        '''
         if int(state_read) == int(target_chain[index]):
             return True
         
@@ -61,6 +74,11 @@ class BoutMachine():
     
     
     def verify_bout(self, previous, current):
+        '''
+        Verifies if the current bout read equals the previous bout read. 
+        Returns True if bout reads are nonzero and equal, otherwise False.
+        '''
+        # revisit for start or end check?
         if previous is None or current is None:
             return False
 
@@ -72,19 +90,28 @@ class BoutMachine():
                             video: pd.DataFrame,
                             verbose: bool = False,
                             ):
-
+        '''
+        Bout search algorithm for single video analysis.
+        
+        :param self: Description
+        :param video: Data slice for single video
+        :param verbose: Bool for process updates
+        '''
         identified = 0
         interval_log = {}
-        bout_log = {}
+        #bout_log = {}
         bout_start = 0
+        last_state = None
 
-        for ref in video.iterrows():
+        for idx, ref in video.iterrows():
             
             # read the current state in the video
-            state_read = self.read_state(ref[1])
+            state_read = self.read_state(ref)
+            if self.use_filt_state and (state_read == None or state_read == last_state):
+                continue
 
             # read the current bout in the video 
-            bout_read = self.read_bout(ref[1])
+            bout_read = self.read_bout(ref)
 
             if verbose:
                 print(f'state read: {state_read} chain acc: {self.chain_acc} target val: {self.target_chain[self.chain_acc]} s_verify: {self.verify_state(state_read, self.target_chain, self.chain_acc)}')
@@ -92,9 +119,8 @@ class BoutMachine():
             # verify if the read state agrees with current index of target chain
             if self.verify_state(state_read, self.target_chain, self.chain_acc):
                 if self.chain_acc == 0: 
-                    cur_start = ref[1]['Start']
-                    bout_start = ref[1]['Bout']
-                    #bout_start_ts = ref[1] 
+                    cur_start = ref['Start']
+                    bout_start = ref['Bout']
 
                 self.chain_acc += 1
                 
@@ -117,27 +143,27 @@ class BoutMachine():
 
             # add bout to return field if chain accumulator reaches max
             if self.chain_acc == len(self.target_chain):
-                
                 identified += 1
-                cur_end = ref[1]['End']
-                bout_end = ref[1]['Bout']
+                cur_end = ref['End']
+                #bout_end = ref['Bout']
 
                 if verbose:
                     print(f'MATCH: {(cur_start, cur_end)}')
 
                 interval_log[f'match_{identified}'] = (cur_start, cur_end)
-                bout_log[f'match_{identified}'] = (bout_start, bout_end)
+                #bout_log[f'match_{identified}'] = (bout_start, bout_end)
 
                 # reset chain accumulator
                 self.chain_acc = 0
+            
+            last_state = state_read
 
         return interval_log
     
     def pull_match_data(self, data: pd.DataFrame, video: str, match_log: dict, target: str, vid_sidx: int = None):
         '''
-        Docstring for pull_match_data
-        returns formatted dictionary for multi video searching
-        columns: match #, target, interval, bout #, sex, strain, duration
+        returns formatted dataframe for multi video searching
+        columns: target, match number, match interval, bout number, bout interval, match position, bout position, duration, sex, strain, video search index, video name
         '''
 
         toReturn = []
@@ -171,6 +197,10 @@ class BoutMachine():
 
 
     def multi_vid_matchlog(self, data: pd.DataFrame, vid_ind: list = None, verbose: bool = False):
+        '''
+        Runs bout search algorithm for all specified videos.
+        If video indices are None, all videos in dataframe are searched.
+        '''
         
         mv_match_log = None
         
@@ -188,18 +218,23 @@ class BoutMachine():
                 
             toAdd = self.pull_match_data(data_slice, name, match_log, self.target_chain, idx)
 
-            if idx == 0:
-                mv_match_log = toAdd
-            else:
-                mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
+            #if idx == 0:
+            #    mv_match_log = toAdd
+            #else:
+            #    mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
 
+            mv_match_log = toAdd if idx == 0 else mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
         
         return mv_match_log
     
     def get_save_path(self, data_fname, target_lib_fname, vid_limit):
+        '''
+        Generates save name for output data.
+        '''
         data_name = data_fname.split('/')[-1].split('.')[0]
         target_name = target_lib_fname.split('/')[-1].split('.')[0]
-        filename = f'lim{vid_limit}_{target_name}_@_{data_name}'
+        state_type = 'filt' if self.use_filt_state else 'ord'
+        filename = f'lim{vid_limit}_{target_name}_{state_type}_@_{data_name}'
 
         os.makedirs('../library/search_logs', exist_ok=True)
         save_path = os.path.join('../library/search_logs', filename + '.csv')
@@ -212,27 +247,31 @@ if __name__ == "__main__":
     target_lib_fname = input("target chain library fname: ")
     save_run = input("save run? (y/n): ")
     vid_limit = input("video limit (int or 'all'): ")
+    use_filt_state = input("use filtered states? (y/n): ")
     verbose = input('verbose? (y/n): ')
     
-
     data = pd.read_csv(data_fname)
     toReturn = None
 
     vid_ind = None if vid_limit.lower() == 'all' else list(range(0, int(vid_limit)))
+    state_type = True if use_filt_state.lower() == 'y' else False
     
     with open(target_lib_fname, 'r') as library:
         lines = (line.strip() for line in library)
 
         for idx, target in enumerate(lines):
             
-            boutMachine = BoutMachine(target, False)
+            boutMachine = BoutMachine(target, use_filt_state=state_type)
             match_log = boutMachine.multi_vid_matchlog(data, vid_ind=vid_ind)
             if verbose.lower() == 'y': 
                 print(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
-            if idx == 0:
-                toReturn = match_log
-            else:
-                toReturn = pd.concat([toReturn, match_log], ignore_index=True)
+                
+            #if idx == 0:
+            #    toReturn = match_log
+            #else:
+            #    toReturn = pd.concat([toReturn, match_log], ignore_index=True)
+
+            toReturn = match_log if idx == 0 else pd.concat([toReturn, match_log], ignore_index=True)
 
     if save_run.lower() == 'y':
         toReturn.to_csv(boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit), index=False, float_format='%.4f')
