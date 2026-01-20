@@ -10,20 +10,21 @@ Grooming Bout Identifier
 import numpy as np
 import pandas as pd
 import os
+import fastparquet
 
 class BoutMachine():
 
     def __init__(self,
                  target_chain: str,
                  use_filt_state: bool = True,
-                 use_bout_assignment: bool = False
+                 #use_bout_assignment: bool = False
                  ):
         
-        self.phase = 0
+        #self.phase = 0
         self.chain_acc = 0
         self.target_chain = target_chain
         self.use_filt_state = use_filt_state
-        self.use_bout_assignment = use_bout_assignment
+        #self.use_bout_assignment = use_bout_assignment
 
 
     def set_target_chain(self, target_chain: str):
@@ -220,7 +221,7 @@ class BoutMachine():
         return mv_match_log
     
 
-    def get_save_path(self, data_fname, target_lib_fname, vid_limit):
+    def get_save_path(self, data_fname, target_lib_fname, vid_limit, save_type):
         '''
         Generates save name for output data.
         '''
@@ -230,8 +231,14 @@ class BoutMachine():
         filename = f'lim{vid_limit}_{target_name}_{state_type}_@_{data_name}'
 
         os.makedirs('../library/search_logs', exist_ok=True)
-        save_path = os.path.join('../library/search_logs', filename + '.csv')
-
+    
+        if save_type == 'csv':
+            os.makedirs('../library/search_logs/CSV', exist_ok=True)
+            save_path = os.path.join('../library/search_logs/CSV', filename)
+        elif save_type == 'parquet':
+            os.makedirs('../library/search_logs/PARQUET', exist_ok=True)    
+            save_path = os.path.join('../library/search_logs/PARQUET', filename)
+        
         return save_path
                 
 
@@ -239,6 +246,7 @@ if __name__ == "__main__":
     data_fname = input("data fname: ")
     target_lib_fname = input("target chain library fname: ")
     save_run = input("save run? (y/n): ")
+    save_type = None if save_run.lower() == 'n' else input('save type? (csv/parquet): ').lower()
     vid_limit = input("video limit (int or 'all'): ")
     use_filt_state = input("use filtered states? (y/n): ")
     verbose = input('verbose? (y/n): ')
@@ -262,4 +270,12 @@ if __name__ == "__main__":
             toReturn = match_log if idx == 0 else pd.concat([toReturn, match_log], ignore_index=True)
 
     if save_run.lower() == 'y':
-        toReturn.to_csv(boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit), index=False, float_format='%.4f')
+        if save_type == 'csv':
+            save_path = boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit, save_type) + '.csv'
+            toReturn.to_csv(save_path, index=False, float_format='%.4f')
+        elif save_type == 'parquet':
+            save_path = boutMachine.get_save_path(data_fname, target_lib_fname, vid_limit, save_type) + '.parquet'
+            toReturn = toReturn.map(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+            toReturn.to_parquet(save_path, index=False, engine='fastparquet', object_encoding="json")
+        else:
+            raise ValueError(f'invalid file type for saving: {save_type}')
