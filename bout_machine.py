@@ -215,7 +215,7 @@ class BoutMachine():
                 
             toAdd = self.pull_match_data(data_slice, name, match_log, self.target_chain, idx)
 
-            mv_match_log = toAdd if idx == 0 else mv_match_log = pd.concat([mv_match_log, toAdd], ignore_index=True)
+            mv_match_log = toAdd if idx == 0 else pd.concat([mv_match_log, toAdd], ignore_index=True)
         
         return mv_match_log
     
