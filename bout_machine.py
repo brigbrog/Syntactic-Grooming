@@ -253,7 +253,11 @@ if __name__ == "__main__":
     use_filt_state = input("use filtered states? (y/n): ")
     verbose = input('verbose? (y/n): ')
     
-    data = pd.read_csv(data_fname)
+    if data_fname.endswith('.csv'):
+        data = pd.read_csv(data_fname)
+    elif data_fname.endswith('.parquet'):
+        data = pd.read_parquet(data_fname, engine='fastparquet')
+        
     toReturn = None
 
     vid_ind = None if vid_limit.lower() == 'all' else list(range(0, int(vid_limit)))
