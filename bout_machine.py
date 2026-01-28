@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import os
 import fastparquet
+from tqdm import tqdm
 
 class BoutMachine():
 
@@ -207,6 +208,7 @@ class BoutMachine():
             names = names[vid_ind]
 
         for idx, name in enumerate(names):
+        #for idx, name in enumerate(tqdm(names, desc="Searching Videos", unit="vid")):
             data_slice = data[data['Video_name'] == name]
             match_log = self.single_vid_matchlog(data_slice)
 
@@ -258,14 +260,16 @@ if __name__ == "__main__":
     state_type = True if use_filt_state.lower() == 'y' else False
     
     with open(target_lib_fname, 'r') as library:
-        lines = (line.strip() for line in library)
+        lines = [line.strip() for line in library]
 
-        for idx, target in enumerate(lines):
+        #for idx, target in enumerate(lines):
+        for idx, target in enumerate(tqdm(lines, desc="Searching for Targets", unit="target")):    
             
             boutMachine = BoutMachine(target, use_filt_state=state_type)
             match_log = boutMachine.multi_vid_matchlog(data, vid_ind=vid_ind)
             if verbose.lower() == 'y': 
-                print(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
+                tqdm.write(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
+                #print(f'target {idx+1}: {target} -> {match_log.shape[0]} matches found')
 
             toReturn = match_log if idx == 0 else pd.concat([toReturn, match_log], ignore_index=True)
 
